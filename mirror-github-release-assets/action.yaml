@@ -1,0 +1,53 @@
+name: Mirror GitHub Release assets
+description: Create or update a GitHub Release and upload matched assets.
+
+inputs:
+  github-token:
+    description: GitHub token used by gh.
+    required: true
+  repository:
+    description: Repository in owner/name form.
+    required: true
+  tag-name:
+    description: Release tag name.
+    required: true
+  asset-glob:
+    description: Glob or path for assets to upload.
+    required: true
+  title:
+    description: Release title.
+    required: true
+  notes:
+    description: Release notes.
+    required: false
+    default: ""
+  clobber:
+    description: Whether to overwrite existing assets.
+    required: false
+    default: "true"
+  verify-tag:
+    description: Whether gh release create should verify the tag.
+    required: false
+    default: "true"
+  update-existing-release:
+    description: Whether to update title and notes when the release already exists.
+    required: false
+    default: "true"
+
+runs:
+  using: composite
+  steps:
+    - name: Mirror GitHub Release assets
+      shell: bash
+      env:
+        MIRROR_ASSET_GLOB: ${{ inputs.asset-glob }}
+        MIRROR_CLOBBER: ${{ inputs.clobber }}
+        MIRROR_GITHUB_TOKEN: ${{ inputs.github-token }}
+        MIRROR_NOTES: ${{ inputs.notes }}
+        MIRROR_REPOSITORY: ${{ inputs.repository }}
+        MIRROR_TAG_NAME: ${{ inputs.tag-name }}
+        MIRROR_TITLE: ${{ inputs.title }}
+        MIRROR_UPDATE_EXISTING_RELEASE: ${{ inputs.update-existing-release }}
+        MIRROR_VERIFY_TAG: ${{ inputs.verify-tag }}
+      run: bash "${GITHUB_ACTION_PATH}/../internal/mirror-github-release-assets.sh"
+
