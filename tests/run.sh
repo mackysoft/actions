@@ -44,6 +44,94 @@ assert_output_value() {
   fi
 }
 
+run_release_source_guard_tests() {
+  local temp_root
+  local remote_dir
+  local work_dir
+  local release_sha
+  local output_file
+
+  temp_root="$(mktemp -d "${TMPDIR:-/tmp}/release-source.XXXXXX")"
+  remote_dir="${temp_root}/remote.git"
+  work_dir="${temp_root}/work"
+  output_file="${temp_root}/outputs.txt"
+
+  git init --bare "$remote_dir" >/dev/null
+  git init -b master "$work_dir" >/dev/null
+  (
+    cd "$work_dir"
+    git config user.name "Tests"
+    git config user.email "tests@example.invalid"
+    printf 'content\n' > file.txt
+    git add file.txt
+    git commit -m "test: seed" >/dev/null
+    release_sha="$(git rev-parse HEAD)"
+    git tag 1.2.3 "$release_sha"
+    git tag v2.0.0 "$release_sha"
+    git tag invalid-version "$release_sha"
+    git remote add origin "$remote_dir"
+    git push origin master >/dev/null 2>&1
+    git push origin refs/tags/1.2.3 refs/tags/v2.0.0 refs/tags/invalid-version >/dev/null 2>&1
+
+    : > "$output_file"
+    GITHUB_OUTPUT="$output_file" \
+      RELEASE_SOURCE_GUARD_TAG_NAME="1.2.3" \
+      RELEASE_SOURCE_GUARD_EXPECTED_RELEASE_SHA="$release_sha" \
+      RELEASE_SOURCE_GUARD_DEFAULT_BRANCH="master" \
+      RELEASE_SOURCE_GUARD_REMOTE="origin" \
+      RELEASE_SOURCE_GUARD_TAG_PREFIX="" \
+      bash "${repo_root}/internal/release-source-guard.sh" >/dev/null
+    assert_output_value "$output_file" "tag-name" "1.2.3"
+    assert_output_value "$output_file" "package-version" "1.2.3"
+    assert_output_value "$output_file" "release-sha" "$release_sha"
+
+    : > "$output_file"
+    GITHUB_OUTPUT="$output_file" \
+      RELEASE_SOURCE_GUARD_TAG_NAME="v2.0.0" \
+      RELEASE_SOURCE_GUARD_EXPECTED_RELEASE_SHA="$release_sha" \
+      RELEASE_SOURCE_GUARD_DEFAULT_BRANCH="master" \
+      RELEASE_SOURCE_GUARD_REMOTE="origin" \
+      RELEASE_SOURCE_GUARD_TAG_PREFIX="v" \
+      bash "${repo_root}/internal/release-source-guard.sh" >/dev/null
+    assert_output_value "$output_file" "tag-name" "v2.0.0"
+    assert_output_value "$output_file" "package-version" "2.0.0"
+    assert_output_value "$output_file" "release-sha" "$release_sha"
+
+    if RELEASE_SOURCE_GUARD_TAG_NAME="1.2.3" \
+      RELEASE_SOURCE_GUARD_EXPECTED_RELEASE_SHA="0000000000000000000000000000000000000000" \
+      RELEASE_SOURCE_GUARD_DEFAULT_BRANCH="master" \
+      RELEASE_SOURCE_GUARD_REMOTE="origin" \
+      RELEASE_SOURCE_GUARD_TAG_PREFIX="" \
+      bash "${repo_root}/internal/release-source-guard.sh" >/dev/null 2>&1; then
+      fail "release-source-guard accepted a mismatched release SHA."
+    fi
+
+    if RELEASE_SOURCE_GUARD_TAG_NAME="invalid-version" \
+      RELEASE_SOURCE_GUARD_EXPECTED_RELEASE_SHA="$release_sha" \
+      RELEASE_SOURCE_GUARD_DEFAULT_BRANCH="master" \
+      RELEASE_SOURCE_GUARD_REMOTE="origin" \
+      RELEASE_SOURCE_GUARD_TAG_PREFIX="" \
+      bash "${repo_root}/internal/release-source-guard.sh" >/dev/null 2>&1; then
+      fail "release-source-guard accepted a non-SemVer tag."
+    fi
+
+    git checkout -b unrelated >/dev/null 2>&1
+    printf 'other\n' > other.txt
+    git add other.txt
+    git commit -m "test: unrelated" >/dev/null
+    if RELEASE_SOURCE_GUARD_TAG_NAME="1.2.3" \
+      RELEASE_SOURCE_GUARD_EXPECTED_RELEASE_SHA="" \
+      RELEASE_SOURCE_GUARD_DEFAULT_BRANCH="master" \
+      RELEASE_SOURCE_GUARD_REMOTE="origin" \
+      RELEASE_SOURCE_GUARD_TAG_PREFIX="" \
+      bash "${repo_root}/internal/release-source-guard.sh" >/dev/null 2>&1; then
+      fail "release-source-guard accepted a checkout that does not match the release tag."
+    fi
+  )
+
+  rm -rf "$temp_root"
+}
+
 run_nuget_trusted_publish_tests() {
   local temp_root
   local stub_dir
@@ -212,6 +300,7 @@ SH
 cd "$repo_root"
 run_bash_syntax_check
 run_yaml_parse_check
+run_release_source_guard_tests
 run_nuget_trusted_publish_tests
 run_nuget_package_state_tests
 

@@ -11,6 +11,42 @@ This repository only keeps actions that behave as single-purpose modules:
 
 ## Actions
 
+### `release-source-guard`
+
+Validates that the current checkout exactly matches a SemVer release tag and
+that the release commit is reachable from the repository default branch.
+
+```yaml
+- name: Guard release source
+  id: release-source
+  uses: mackysoft/actions/release-source-guard@v1
+  with:
+    tag-name: ${{ github.ref_name }}
+    default-branch: ${{ github.event.repository.default_branch }}
+```
+
+Inputs:
+
+| Name | Required | Default | Description |
+| --- | --- | --- | --- |
+| `tag-name` | Yes | None | Release tag name to fetch and validate. |
+| `default-branch` | Yes | None | Default branch name used for reachability validation. |
+| `remote` | No | `origin` | Git remote name. |
+| `expected-release-sha` | No | `""` | Optional expected release commit SHA. |
+| `tag-prefix` | No | `""` | Optional prefix to strip from the tag before SemVer package version validation. |
+
+Outputs:
+
+| Name | Description |
+| --- | --- |
+| `tag-name` | Validated release tag name. |
+| `package-version` | SemVer package version resolved from the release tag. |
+| `release-sha` | Validated release commit SHA. |
+
+The guard always fetches the release tag and default branch, validates that the
+checked-out `HEAD` is the release tag commit, and verifies that the release
+commit is reachable from the default branch. It does not create tags.
+
 ### `nuget-trusted-publish`
 
 Publishes one or more `.nupkg` files to NuGet.org using NuGet Trusted Publishing.
@@ -107,7 +143,6 @@ These responsibilities intentionally stay out of this repository:
 - .NET SDK setup, restore, build, test, and format
 - repository verification policy
 - package version resolution
-- release source validation, until release flows converge enough to justify a module
 - package content or command contract smoke tests
 - GitHub Release asset policy
 - path-based verification scope detection

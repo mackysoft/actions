@@ -1,0 +1,47 @@
+name: Release Source Guard
+description: Validate that the current checkout exactly matches a SemVer release tag reachable from the default branch.
+
+inputs:
+  tag-name:
+    description: Release tag name to fetch and validate.
+    required: true
+  default-branch:
+    description: Default branch name used for reachability validation.
+    required: true
+  remote:
+    description: Git remote name.
+    required: false
+    default: origin
+  expected-release-sha:
+    description: Optional expected release commit SHA.
+    required: false
+    default: ""
+  tag-prefix:
+    description: Optional prefix to strip from the tag before SemVer package version validation.
+    required: false
+    default: ""
+
+outputs:
+  tag-name:
+    description: Validated release tag name.
+    value: ${{ steps.guard.outputs['tag-name'] }}
+  package-version:
+    description: SemVer package version resolved from the release tag.
+    value: ${{ steps.guard.outputs['package-version'] }}
+  release-sha:
+    description: Validated release commit SHA.
+    value: ${{ steps.guard.outputs['release-sha'] }}
+
+runs:
+  using: composite
+  steps:
+    - name: Guard release source
+      id: guard
+      shell: bash
+      env:
+        RELEASE_SOURCE_GUARD_DEFAULT_BRANCH: ${{ inputs.default-branch }}
+        RELEASE_SOURCE_GUARD_EXPECTED_RELEASE_SHA: ${{ inputs.expected-release-sha }}
+        RELEASE_SOURCE_GUARD_REMOTE: ${{ inputs.remote }}
+        RELEASE_SOURCE_GUARD_TAG_NAME: ${{ inputs.tag-name }}
+        RELEASE_SOURCE_GUARD_TAG_PREFIX: ${{ inputs.tag-prefix }}
+      run: bash "${GITHUB_ACTION_PATH}/../internal/release-source-guard.sh"
