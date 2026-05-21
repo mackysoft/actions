@@ -44,4 +44,4 @@ runs:
         RELEASE_SOURCE_GUARD_REMOTE: ${{ inputs.remote }}
         RELEASE_SOURCE_GUARD_TAG_NAME: ${{ inputs.tag-name }}
         RELEASE_SOURCE_GUARD_TAG_PREFIX: ${{ inputs.tag-prefix }}
-      run: bash "${GITHUB_ACTION_PATH}/../internal/release-source-guard.sh"
+      run: bash "${GITHUB_ACTION_PATH}/../../internal/release-source-guard.sh"
