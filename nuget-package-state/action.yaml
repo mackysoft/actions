@@ -1,0 +1,55 @@
+name: NuGet Package State
+description: Inspect or wait for NuGet package availability in the flat container feed.
+
+inputs:
+  mode:
+    description: Operation mode. Use inspect to classify publication state, or wait to block until every package exists.
+    required: false
+    default: inspect
+  package-version:
+    description: NuGet package version to inspect.
+    required: true
+  package-ids:
+    description: Newline-separated NuGet package IDs.
+    required: true
+  flat-container-base-url:
+    description: NuGet flat container base URL.
+    required: false
+    default: https://api.nuget.org/v3-flatcontainer
+  max-attempts:
+    description: Maximum number of checks in wait mode.
+    required: false
+    default: "30"
+  interval-seconds:
+    description: Seconds to wait between checks in wait mode.
+    required: false
+    default: "10"
+
+outputs:
+  all-packages-exist:
+    description: true when every requested package exists.
+    value: ${{ steps.state.outputs['all-packages-exist'] }}
+  publish-required:
+    description: true when none of the requested packages exist and publishing should proceed.
+    value: ${{ steps.state.outputs['publish-required'] }}
+  existing-package-ids-json:
+    description: JSON array of package IDs that already exist.
+    value: ${{ steps.state.outputs['existing-package-ids-json'] }}
+  missing-package-ids-json:
+    description: JSON array of package IDs that do not exist.
+    value: ${{ steps.state.outputs['missing-package-ids-json'] }}
+
+runs:
+  using: composite
+  steps:
+    - name: Check NuGet package state
+      id: state
+      shell: bash
+      env:
+        NUGET_PACKAGE_STATE_FLAT_CONTAINER_BASE_URL: ${{ inputs.flat-container-base-url }}
+        NUGET_PACKAGE_STATE_INTERVAL_SECONDS: ${{ inputs.interval-seconds }}
+        NUGET_PACKAGE_STATE_MAX_ATTEMPTS: ${{ inputs.max-attempts }}
+        NUGET_PACKAGE_STATE_MODE: ${{ inputs.mode }}
+        NUGET_PACKAGE_STATE_PACKAGE_IDS: ${{ inputs.package-ids }}
+        NUGET_PACKAGE_STATE_PACKAGE_VERSION: ${{ inputs.package-version }}
+      run: bash "${GITHUB_ACTION_PATH}/../internal/nuget-package-state.sh"
