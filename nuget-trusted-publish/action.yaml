@@ -1,21 +1,17 @@
-name: Publish NuGet package
-description: Publish one or more NuGet package artifacts with nuget.org Trusted Publishing.
+name: NuGet Trusted Publishing
+description: Publish one or more NuGet package artifacts with NuGet.org Trusted Publishing.
 
 inputs:
   package-glob:
     description: Glob or path for NuGet package artifacts.
     required: true
   nuget-user:
-    description: nuget.org account name configured for Trusted Publishing.
+    description: NuGet.org account name configured for Trusted Publishing.
     required: true
   source:
-    description: NuGet package source URL.
+    description: NuGet package source URL passed to dotnet nuget push.
     required: false
     default: https://api.nuget.org/v3/index.json
-  skip-duplicate:
-    description: Whether to pass --skip-duplicate to dotnet nuget push.
-    required: false
-    default: "true"
 
 runs:
   using: composite
@@ -31,6 +27,5 @@ runs:
       env:
         NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         NUGET_PACKAGE_GLOB: ${{ inputs.package-glob }}
-        NUGET_SKIP_DUPLICATE: ${{ inputs.skip-duplicate }}
         NUGET_SOURCE: ${{ inputs.source }}
-      run: bash "${GITHUB_ACTION_PATH}/../internal/publish-nuget-package.sh"
+      run: bash "${GITHUB_ACTION_PATH}/../internal/nuget-trusted-publish.sh"
