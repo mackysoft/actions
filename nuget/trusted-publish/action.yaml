@@ -28,4 +28,4 @@ runs:
         NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
         NUGET_PACKAGE_GLOB: ${{ inputs.package-glob }}
         NUGET_SOURCE: ${{ inputs.source }}
-      run: bash "${GITHUB_ACTION_PATH}/../internal/nuget-trusted-publish.sh"
+      run: bash "${GITHUB_ACTION_PATH}/../../internal/nuget-trusted-publish.sh"

@@ -52,4 +52,4 @@ runs:
         NUGET_PACKAGE_STATE_MODE: ${{ inputs.mode }}
         NUGET_PACKAGE_STATE_PACKAGE_IDS: ${{ inputs.package-ids }}
         NUGET_PACKAGE_STATE_PACKAGE_VERSION: ${{ inputs.package-version }}
-      run: bash "${GITHUB_ACTION_PATH}/../internal/nuget-package-state.sh"
+      run: bash "${GITHUB_ACTION_PATH}/../../internal/nuget-package-state.sh"

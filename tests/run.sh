@@ -19,7 +19,7 @@ run_yaml_parse_check() {
   ruby --disable-gems <<'RUBY'
 require "yaml"
 
-paths = (Dir.glob("*/action.yaml") + Dir.glob(".github/workflows/*.yaml")).sort
+paths = (Dir.glob("**/action.yaml") + Dir.glob(".github/workflows/*.yaml")).sort
 abort "No YAML files found." if paths.empty?
 
 paths.each do |path|

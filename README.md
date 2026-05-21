@@ -11,7 +11,7 @@ This repository only keeps actions that behave as single-purpose modules:
 
 ## Actions
 
-### `release-source-guard`
+### `release/source-guard`
 
 Validates that the current checkout exactly matches a SemVer release tag and
 that the release commit is reachable from the repository default branch.
@@ -19,7 +19,7 @@ that the release commit is reachable from the repository default branch.
 ```yaml
 - name: Guard release source
   id: release-source
-  uses: mackysoft/actions/release-source-guard@v1
+  uses: mackysoft/actions/release/source-guard@v1
   with:
     tag-name: ${{ github.ref_name }}
     default-branch: ${{ github.event.repository.default_branch }}
@@ -47,7 +47,7 @@ The guard always fetches the release tag and default branch, validates that the
 checked-out `HEAD` is the release tag commit, and verifies that the release
 commit is reachable from the default branch. It does not create tags.
 
-### `nuget-trusted-publish`
+### `nuget/trusted-publish`
 
 Publishes one or more `.nupkg` files to NuGet.org using NuGet Trusted Publishing.
 
@@ -58,7 +58,7 @@ permissions:
 
 steps:
   - name: Publish to NuGet.org
-    uses: mackysoft/actions/nuget-trusted-publish@v1
+    uses: mackysoft/actions/nuget/trusted-publish@v1
     with:
       package-glob: artifacts/packages/*.nupkg
       nuget-user: ${{ vars.NUGET_USER }}
@@ -78,7 +78,7 @@ This action only performs Trusted Publishing login and `dotnet nuget push`.
 It does not decide whether publishing is required, and it does not pass
 `--skip-duplicate`.
 
-### `nuget-package-state`
+### `nuget/package-state`
 
 Inspects or waits for NuGet package availability through the NuGet flat
 container feed.
@@ -88,7 +88,7 @@ Inspect before publishing:
 ```yaml
 - name: Inspect NuGet package state
   id: package-state
-  uses: mackysoft/actions/nuget-package-state@v1
+  uses: mackysoft/actions/nuget/package-state@v1
   with:
     mode: inspect
     package-version: ${{ needs.prepare-release.outputs.package_version }}
@@ -101,7 +101,7 @@ Wait after publishing:
 
 ```yaml
 - name: Wait for NuGet package availability
-  uses: mackysoft/actions/nuget-package-state@v1
+  uses: mackysoft/actions/nuget/package-state@v1
   with:
     mode: wait
     package-version: ${{ needs.prepare-release.outputs.package_version }}
