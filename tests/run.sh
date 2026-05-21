@@ -185,6 +185,71 @@ SH
   rm -rf "$temp_root"
 }
 
+link_test_command() {
+  local command_name="$1"
+  local target_dir="$2"
+  local command_path
+
+  command_path="$(command -v "$command_name" || true)"
+  if [ -z "$command_path" ]; then
+    return 1
+  fi
+
+  ln -s "$command_path" "${target_dir}/${command_name}"
+}
+
+create_path_without_shasum() {
+  local stub_dir="$1"
+
+  link_test_command bash "$stub_dir" || fail "bash is required for the cache key fallback test."
+  link_test_command awk "$stub_dir" || fail "awk is required for the cache key fallback test."
+  link_test_command dirname "$stub_dir" || fail "dirname is required for the cache key fallback test."
+  link_test_command mktemp "$stub_dir" || fail "mktemp is required for the cache key fallback test."
+  link_test_command rm "$stub_dir" || fail "rm is required for the cache key fallback test."
+  link_test_command sort "$stub_dir" || fail "sort is required for the cache key fallback test."
+
+  if ! link_test_command sha256sum "$stub_dir"; then
+    link_test_command openssl "$stub_dir" || fail "sha256sum or openssl is required for the cache key fallback test."
+  fi
+
+  cat > "${stub_dir}/git" <<'SH'
+#!/usr/bin/env bash
+exit 1
+SH
+  chmod +x "${stub_dir}/git"
+}
+
+run_compute_cache_key_tests() {
+  local temp_root
+  local stub_dir
+  local output_file
+
+  temp_root="$(mktemp -d "${TMPDIR:-/tmp}/compute-cache-key.XXXXXX")"
+  stub_dir="${temp_root}/bin"
+  output_file="${temp_root}/outputs.txt"
+  mkdir -p "$stub_dir"
+  create_path_without_shasum "$stub_dir"
+
+  (
+    cd "$temp_root"
+    printf '<Project />\n' > sample.csproj
+    PATH="$stub_dir" \
+      GITHUB_OUTPUT="$output_file" \
+      RUNNER_OS="Windows" \
+      CACHE_KEY_PREFIX="nuget" \
+      CACHE_KEY_FILES="sample.csproj" \
+      "$BASH" "${repo_root}/internal/compute-cache-key.sh" >/dev/null
+  )
+
+  if ! grep -E '^cache-key=Windows-nuget-[0-9a-f]{64}$' "$output_file" >/dev/null; then
+    echo "Unexpected cache key output:" >&2
+    cat "$output_file" >&2
+    exit 1
+  fi
+
+  rm -rf "$temp_root"
+}
+
 run_nuget_common_tests() {
   local temp_root
   local stub_dir
@@ -550,6 +615,7 @@ run_yaml_parse_check
 run_resolve_release_version_tests
 run_validate_release_source_tests
 run_dotnet_format_tests
+run_compute_cache_key_tests
 run_nuget_common_tests
 run_inspect_nuget_package_state_tests
 run_wait_nuget_packages_tests
