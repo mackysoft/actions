@@ -56,17 +56,10 @@ Runs `dotnet format whitespace` and `dotnet format style` in `format` or
   with:
     solution: Ucli.slnx
     mode: verify
-    diagnostics: |
-      IDE0005
-      IDE0011
-      IDE0036
-      IDE0048
-      IDE0049
-      IDE0062
-      IDE1006
 ```
 
-Diagnostics are repository policy and should be passed by the caller.
+Analyzer severities and formatting policy come from the consuming repository,
+including `.editorconfig`.
 
 Inputs:
 
@@ -75,7 +68,6 @@ Inputs:
 | `solution` | Yes | None | Solution or project path passed to `dotnet format`. |
 | `mode` | No | `verify` | Either `format` or `verify`. |
 | `restore` | No | `false` | Whether to run `dotnet restore` before formatting. |
-| `diagnostics` | Yes | None | Newline-separated analyzer diagnostic IDs passed to `dotnet format style`. |
 | `include` | No | `""` | Optional newline-separated paths passed to `dotnet format --include`. |
 
 ### `dotnet-test`
