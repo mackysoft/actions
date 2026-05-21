@@ -119,6 +119,99 @@ Publishes one or more `.nupkg` files to NuGet.org using Trusted Publishing.
 
 The caller job must grant `id-token: write`.
 
+### `inspect-nuget-package-state`
+
+Checks whether a set of package IDs already exists for one version on a NuGet
+flat container feed.
+
+```yaml
+- id: nuget-state
+  uses: mackysoft/actions/inspect-nuget-package-state@v1
+  with:
+    version: ${{ steps.version.outputs.package-version }}
+    package-ids: |
+      MackySoft.Ucli
+      MackySoft.Ucli.Contracts
+      MackySoft.Ucli.Infrastructure
+```
+
+Outputs:
+
+- `all-packages-exist`
+- `publish-required`
+- `existing-package-ids`
+- `missing-package-ids`
+
+When some packages exist and others are missing, the action fails by default.
+
+### `wait-nuget-packages`
+
+Waits until package artifacts are available from a NuGet flat container feed.
+
+```yaml
+- uses: mackysoft/actions/wait-nuget-packages@v1
+  with:
+    version: ${{ steps.version.outputs.package-version }}
+    package-ids: |
+      MackySoft.Ucli
+      MackySoft.Ucli.Contracts
+    attempts: 30
+    interval-seconds: 10
+```
+
+Use this after `publish-nuget-package` and before NuGet.org smoke tests or
+release mirroring.
+
+### `mirror-github-release-assets`
+
+Creates or updates a GitHub Release and uploads matched assets.
+
+```yaml
+- uses: mackysoft/actions/mirror-github-release-assets@v1
+  with:
+    github-token: ${{ github.token }}
+    repository: ${{ github.repository }}
+    tag-name: ${{ github.ref_name }}
+    title: ${{ github.ref_name }}
+    notes: ""
+    asset-glob: artifacts/packages/*.nupkg
+```
+
+The caller job must grant `contents: write`.
+
+### `dotnet-tool-smoke-test`
+
+Installs a .NET tool package in an isolated environment and verifies the
+installed command can run basic version and help checks.
+
+```yaml
+- uses: mackysoft/actions/dotnet-tool-smoke-test@v1
+  with:
+    package-id: MackySoft.Dotmet
+    package-version: ${{ steps.version.outputs.package-version }}
+    command-name: dotmet
+    source: artifacts/packages
+    help-contains: Commands:
+```
+
+This action only checks that the package works as a .NET tool. Product-specific
+checks such as schema files, bundled skills, or command contracts should remain
+in the consuming repository.
+
+## Release flow
+
+A typical NuGet release workflow uses these primitives in this order:
+
+```text
+resolve-release-version
+validate-release-source
+inspect-nuget-package-state
+publish-nuget-package
+wait-nuget-packages
+dotnet-tool-smoke-test
+mirror-github-release-assets
+```
+
 ## Validation
 
 Run the repository validation locally:
@@ -126,4 +219,3 @@ Run the repository validation locally:
 ```bash
 bash tests/run.sh
 ```
-

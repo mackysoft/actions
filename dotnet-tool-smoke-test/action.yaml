@@ -1,0 +1,64 @@
+name: .NET tool smoke test
+description: Install a .NET tool package in an isolated environment and run basic command checks.
+
+inputs:
+  package-id:
+    description: NuGet package ID.
+    required: true
+  package-version:
+    description: NuGet package version.
+    required: true
+  command-name:
+    description: Installed command name.
+    required: true
+  source:
+    description: NuGet feed URL or local package directory.
+    required: false
+    default: https://api.nuget.org/v3/index.json
+  retry-timeout-seconds:
+    description: Maximum install retry duration.
+    required: false
+    default: "600"
+  retry-interval-seconds:
+    description: Seconds to sleep between install attempts.
+    required: false
+    default: "30"
+  assert-version:
+    description: Whether to assert command version output equals package-version.
+    required: false
+    default: "true"
+  version-argument:
+    description: Command argument used for version assertion.
+    required: false
+    default: --version
+  assert-help:
+    description: Whether to run the command help check.
+    required: false
+    default: "true"
+  help-argument:
+    description: Command argument used for help assertion.
+    required: false
+    default: --help
+  help-contains:
+    description: Optional text expected in help output.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Run .NET tool smoke test
+      shell: bash
+      env:
+        DOTNET_TOOL_ASSERT_HELP: ${{ inputs.assert-help }}
+        DOTNET_TOOL_ASSERT_VERSION: ${{ inputs.assert-version }}
+        DOTNET_TOOL_COMMAND_NAME: ${{ inputs.command-name }}
+        DOTNET_TOOL_HELP_ARGUMENT: ${{ inputs.help-argument }}
+        DOTNET_TOOL_HELP_CONTAINS: ${{ inputs.help-contains }}
+        DOTNET_TOOL_PACKAGE_ID: ${{ inputs.package-id }}
+        DOTNET_TOOL_PACKAGE_VERSION: ${{ inputs.package-version }}
+        DOTNET_TOOL_RETRY_INTERVAL_SECONDS: ${{ inputs.retry-interval-seconds }}
+        DOTNET_TOOL_RETRY_TIMEOUT_SECONDS: ${{ inputs.retry-timeout-seconds }}
+        DOTNET_TOOL_SOURCE: ${{ inputs.source }}
+        DOTNET_TOOL_VERSION_ARGUMENT: ${{ inputs.version-argument }}
+      run: bash "${GITHUB_ACTION_PATH}/../internal/dotnet-tool-smoke-test.sh"
