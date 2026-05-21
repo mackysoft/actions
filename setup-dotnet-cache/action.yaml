@@ -1,0 +1,106 @@
+name: Setup .NET with NuGet cache
+description: Set up the .NET SDK, NuGet package cache, optional global.json pinning, and optional restore.
+
+inputs:
+  dotnet-version:
+    description: .NET SDK version passed to actions/setup-dotnet.
+    required: true
+  dotnet-quality:
+    description: Optional .NET SDK quality passed to actions/setup-dotnet.
+    required: false
+    default: ""
+  cache:
+    description: Whether to restore and save ~/.nuget/packages with actions/cache.
+    required: false
+    default: "true"
+  cache-key-files:
+    description: Newline-separated git pathspecs used to compute the NuGet cache key.
+    required: false
+    default: |
+      *.sln
+      *.slnx
+      **/*.csproj
+      **/*.fsproj
+      **/*.vbproj
+      Directory.Build.props
+      Directory.Build.targets
+      Directory.Packages.props
+      NuGet.config
+      global.json
+  cache-key-prefix:
+    description: Prefix used after the runner OS in the generated cache key.
+    required: false
+    default: nuget
+  pin-global-json:
+    description: Whether to overwrite global.json with the exact SDK version installed by setup-dotnet.
+    required: false
+    default: "false"
+  restore-command:
+    description: Optional restore command to run after setup and cache restore.
+    required: false
+    default: ""
+
+outputs:
+  cache-key:
+    description: Generated NuGet cache key.
+    value: ${{ steps.cache-key.outputs.cache-key }}
+
+runs:
+  using: composite
+  steps:
+    - name: Setup .NET SDK
+      id: setup-dotnet
+      if: ${{ inputs.dotnet-quality == '' }}
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: ${{ inputs.dotnet-version }}
+
+    - name: Setup .NET SDK with quality
+      id: setup-dotnet-quality
+      if: ${{ inputs.dotnet-quality != '' }}
+      uses: actions/setup-dotnet@v5
+      with:
+        dotnet-version: ${{ inputs.dotnet-version }}
+        dotnet-quality: ${{ inputs.dotnet-quality }}
+
+    - name: Compute NuGet cache key
+      id: cache-key
+      shell: bash
+      env:
+        CACHE_KEY_FILES: ${{ inputs.cache-key-files }}
+        CACHE_KEY_PREFIX: ${{ inputs.cache-key-prefix }}
+      run: bash "${GITHUB_ACTION_PATH}/../internal/compute-cache-key.sh"
+
+    - name: Cache NuGet packages
+      if: ${{ inputs.cache == 'true' }}
+      uses: actions/cache@v5
+      with:
+        path: ~/.nuget/packages
+        key: ${{ steps.cache-key.outputs.cache-key }}
+        restore-keys: |
+          ${{ runner.os }}-${{ inputs.cache-key-prefix }}-
+
+    - name: Pin .NET SDK for repository
+      if: ${{ inputs.pin-global-json == 'true' }}
+      shell: bash
+      env:
+        SETUP_DOTNET_VERSION: ${{ steps.setup-dotnet.outputs.dotnet-version || steps.setup-dotnet-quality.outputs.dotnet-version }}
+      run: |
+        set -euo pipefail
+
+        if [ -z "${SETUP_DOTNET_VERSION}" ]; then
+          echo "actions/setup-dotnet did not return dotnet-version." >&2
+          exit 1
+        fi
+
+        dotnet new globaljson --sdk-version "${SETUP_DOTNET_VERSION}" --force
+        dotnet --info
+
+    - name: Restore
+      if: ${{ inputs.restore-command != '' }}
+      shell: bash
+      env:
+        RESTORE_COMMAND: ${{ inputs.restore-command }}
+      run: |
+        set -euo pipefail
+        bash -c "${RESTORE_COMMAND}"

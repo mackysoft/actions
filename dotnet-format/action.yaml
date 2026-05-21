@@ -1,0 +1,35 @@
+name: .NET format
+description: Run dotnet format whitespace and style in format or verify mode.
+
+inputs:
+  solution:
+    description: Solution or project path passed to dotnet format.
+    required: true
+  mode:
+    description: Either format or verify.
+    required: false
+    default: verify
+  restore:
+    description: Whether to run dotnet restore before formatting.
+    required: false
+    default: "false"
+  diagnostics:
+    description: Newline-separated analyzer diagnostic IDs passed to dotnet format style.
+    required: true
+  include:
+    description: Optional newline-separated paths passed to dotnet format --include.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Run dotnet format
+      shell: bash
+      env:
+        DOTNET_FORMAT_DIAGNOSTICS: ${{ inputs.diagnostics }}
+        DOTNET_FORMAT_INCLUDE: ${{ inputs.include }}
+        DOTNET_FORMAT_MODE: ${{ inputs.mode }}
+        DOTNET_FORMAT_RESTORE: ${{ inputs.restore }}
+        DOTNET_FORMAT_SOLUTION: ${{ inputs.solution }}
+      run: bash "${GITHUB_ACTION_PATH}/../internal/dotnet-format.sh"

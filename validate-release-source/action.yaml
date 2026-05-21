@@ -1,0 +1,51 @@
+name: Validate release source
+description: Validate that a release tag/source is stable and reachable from the default branch.
+
+inputs:
+  tag-name:
+    description: Release tag name.
+    required: true
+  release-sha:
+    description: Optional expected release commit SHA.
+    required: false
+    default: ""
+  default-branch:
+    description: Default branch name used for reachability validation.
+    required: true
+  remote:
+    description: Git remote name.
+    required: false
+    default: origin
+  require-tag:
+    description: Whether the release tag must exist and be fetched.
+    required: false
+    default: "true"
+  require-head-match:
+    description: Whether the current HEAD must match the resolved release SHA.
+    required: false
+    default: "false"
+  require-ancestor:
+    description: Whether the resolved release SHA must be reachable from the default branch.
+    required: false
+    default: "true"
+
+outputs:
+  release-sha:
+    description: Resolved release commit SHA.
+    value: ${{ steps.validate.outputs.release-sha }}
+
+runs:
+  using: composite
+  steps:
+    - name: Validate release source
+      id: validate
+      shell: bash
+      env:
+        VALIDATE_RELEASE_DEFAULT_BRANCH: ${{ inputs.default-branch }}
+        VALIDATE_RELEASE_REMOTE: ${{ inputs.remote }}
+        VALIDATE_RELEASE_REQUIRE_ANCESTOR: ${{ inputs.require-ancestor }}
+        VALIDATE_RELEASE_REQUIRE_HEAD_MATCH: ${{ inputs.require-head-match }}
+        VALIDATE_RELEASE_REQUIRE_TAG: ${{ inputs.require-tag }}
+        VALIDATE_RELEASE_SHA: ${{ inputs.release-sha }}
+        VALIDATE_RELEASE_TAG_NAME: ${{ inputs.tag-name }}
+      run: bash "${GITHUB_ACTION_PATH}/../internal/validate-release-source.sh"

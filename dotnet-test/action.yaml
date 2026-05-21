@@ -1,0 +1,37 @@
+name: .NET test
+description: Run dotnet test with stable argument handling.
+
+inputs:
+  target:
+    description: Optional solution, project, or directory passed to dotnet test.
+    required: false
+    default: ""
+  configuration:
+    description: Build configuration passed to dotnet test.
+    required: false
+    default: Release
+  restore:
+    description: Whether dotnet test should restore packages.
+    required: false
+    default: "false"
+  no-build:
+    description: Whether to pass --no-build to dotnet test.
+    required: false
+    default: "false"
+  test-arguments:
+    description: Optional newline-separated arguments appended to dotnet test.
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Run dotnet test
+      shell: bash
+      env:
+        DOTNET_TEST_ARGUMENTS: ${{ inputs.test-arguments }}
+        DOTNET_TEST_CONFIGURATION: ${{ inputs.configuration }}
+        DOTNET_TEST_NO_BUILD: ${{ inputs.no-build }}
+        DOTNET_TEST_RESTORE: ${{ inputs.restore }}
+        DOTNET_TEST_TARGET: ${{ inputs.target }}
+      run: bash "${GITHUB_ACTION_PATH}/../internal/dotnet-test.sh"

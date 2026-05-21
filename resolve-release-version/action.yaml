@@ -1,0 +1,40 @@
+name: Resolve release version
+description: Resolve a SemVer package version and tag name from a tag push or workflow_dispatch input.
+
+inputs:
+  event-name:
+    description: GitHub event name.
+    required: true
+  ref-name:
+    description: GitHub ref name used for tag push releases.
+    required: false
+    default: ""
+  dispatch-tag:
+    description: Release tag input used for workflow_dispatch releases.
+    required: false
+    default: ""
+  allow-prerelease:
+    description: Whether prerelease SemVer tags are accepted.
+    required: false
+    default: "false"
+
+outputs:
+  package-version:
+    description: Resolved package version.
+    value: ${{ steps.resolve.outputs.package-version }}
+  tag-name:
+    description: Resolved release tag name.
+    value: ${{ steps.resolve.outputs.tag-name }}
+
+runs:
+  using: composite
+  steps:
+    - name: Resolve release version
+      id: resolve
+      shell: bash
+      env:
+        RELEASE_ALLOW_PRERELEASE: ${{ inputs.allow-prerelease }}
+        RELEASE_DISPATCH_TAG: ${{ inputs.dispatch-tag }}
+        RELEASE_EVENT_NAME: ${{ inputs.event-name }}
+        RELEASE_REF_NAME: ${{ inputs.ref-name }}
+      run: bash "${GITHUB_ACTION_PATH}/../internal/resolve-release-version.sh"
