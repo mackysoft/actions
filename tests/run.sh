@@ -145,6 +145,46 @@ run_validate_release_source_tests() {
   rm -rf "$temp_root"
 }
 
+run_dotnet_format_tests() {
+  local temp_root
+  local stub_dir
+  local log_file
+
+  temp_root="$(mktemp -d "${TMPDIR:-/tmp}/dotnet-format.XXXXXX")"
+  stub_dir="${temp_root}/bin"
+  log_file="${temp_root}/dotnet.log"
+  mkdir -p "$stub_dir"
+
+  cat > "${stub_dir}/dotnet" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$DOTNET_FORMAT_FAKE_LOG"
+exit 0
+SH
+  chmod +x "${stub_dir}/dotnet"
+
+  PATH="${stub_dir}:$PATH" \
+    DOTNET_FORMAT_FAKE_LOG="$log_file" \
+    DOTNET_FORMAT_SOLUTION="Sample.slnx" \
+    DOTNET_FORMAT_MODE="verify" \
+    DOTNET_FORMAT_RESTORE="false" \
+    DOTNET_FORMAT_INCLUDE="" \
+    bash "${repo_root}/internal/dotnet-format.sh" >/dev/null
+
+  if grep -F -- "--diagnostics" "$log_file" >/dev/null; then
+    fail "dotnet-format passed --diagnostics even though diagnostics is not an action input."
+  fi
+
+  if ! grep -F "format style Sample.slnx" "$log_file" >/dev/null; then
+    fail "dotnet-format did not run dotnet format style."
+  fi
+
+  if ! grep -F "format whitespace Sample.slnx" "$log_file" >/dev/null; then
+    fail "dotnet-format did not run dotnet format whitespace."
+  fi
+
+  rm -rf "$temp_root"
+}
+
 run_nuget_common_tests() {
   local temp_root
   local stub_dir
@@ -509,6 +549,7 @@ run_bash_syntax_check
 run_yaml_parse_check
 run_resolve_release_version_tests
 run_validate_release_source_tests
+run_dotnet_format_tests
 run_nuget_common_tests
 run_inspect_nuget_package_state_tests
 run_wait_nuget_packages_tests
